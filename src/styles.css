@@ -113,3 +113,22 @@ code{background:#25231e;padding:1px 5px;border-radius:4px;font-size:11px;color:v
 .sheetPhoto{width:78px;height:104px;object-fit:cover;border:1px solid #ccc;border-radius:4px}
 .printSheetHead .sheetPhoto{margin-left:auto}
 @media(max-width:500px){.photoField{flex-direction:column}}
+
+/* ===== Atividades (modalidades) ===== */
+.activityPicker{grid-column:1/-1;border:1px solid #39342a;border-radius:8px;padding:14px;background:#15140f;display:flex;flex-direction:column;gap:10px}
+.activityPicker>b{font-size:11px;color:var(--gold-light)}
+.activityPicker>div{display:flex;flex-wrap:wrap;gap:8px 18px}
+.activityPicker label{flex-direction:row!important;align-items:center;gap:7px!important;font-size:12px!important;color:#e8e2d4!important}
+.activityPicker input{width:auto!important}
+.activityPicker small{font-size:10px;color:#8f887c;line-height:1.5}
+.actChoices{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 0}
+.actChoices label{flex-direction:row!important;align-items:center;gap:8px!important;font-size:13px}
+.actChoices input{width:auto!important}
+.actChoices small{flex-basis:100%;color:#9d978c;font-size:11px}
+.actTags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.actTags button{background:#25231e;border:1px solid #39352c;color:#c8b88d;border-radius:20px;padding:6px 13px;font-size:12px}
+.actTags button.on{background:var(--gold);color:#15130e;border-color:var(--gold);font-weight:700}
+.idActs{display:flex;flex-direction:column;gap:6px;margin:4px 0}
+.fieldLabel{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;font-size:13px;margin-top:10px}
+.idActs>span{display:flex;justify-content:space-between;gap:10px;font-size:13px;border-bottom:1px solid #2b2924;padding:6px 0}
+.idActs b{color:var(--gold-light)}

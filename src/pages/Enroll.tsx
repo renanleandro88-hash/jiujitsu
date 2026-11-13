@@ -1,3 +1,4 @@
+import ActivityChoice, { useActivities } from '../components/ActivityChoice';
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Camera } from 'lucide-react';
@@ -15,7 +16,7 @@ const today = () => {
 };
 
 const INITIAL: Record<string, string> = {
-  start_date: today(), sport: 'Jiu-Jitsu', team: '',
+  start_date: today(), team: '',
   full_name: '', birth_date: '', rg: '', cpf: '', sex: '', marital_status: '', nationality: 'Brasileira', race_color: '',
   father_name: '', father_rg: '', father_cpf: '', father_birth_date: '', mother_name: '', mother_rg: '', mother_cpf: '', mother_birth_date: '',
   address: '', neighborhood: '', city: 'São Paulo', cep: '', address_complement: '',
@@ -51,6 +52,8 @@ export default function Enroll() {
   const [photo, setPhoto] = useState('');
   const [photoBusy, setPhotoBusy] = useState(false);
   const top = useRef<HTMLDivElement>(null);
+  const { list: acts, loaded: actsLoaded } = useActivities();
+  const [actIds, setActIds] = useState<string[]>([]);
 
   const val = (k: string) => f[k];
   const set = (k: string) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF(p => ({ ...p, [k]: e.target.value }));
@@ -85,12 +88,13 @@ export default function Enroll() {
     if (f.cpf && !validCpf(f.cpf)) return fail('O CPF do aluno parece inválido.');
     if (f.father_cpf && !validCpf(f.father_cpf)) return fail('O CPF do pai parece inválido.');
     if (f.mother_cpf && !validCpf(f.mother_cpf)) return fail('O CPF da mãe parece inválido.');
+    if (actIds.length < 1 || actIds.length > 2) return fail('Escolha 1 ou 2 atividades que o aluno vai praticar.');
     if (!photo) return fail('Envie a foto do aluno (rosto de frente). Ela será usada na carteirinha.');
     if (f.phone1.replace(/\D/g, '').length < 10) return fail('Informe o telefone com DDD.');
     if (!chk.terms || !chk.combat || !chk.medical) return fail('É preciso aceitar os termos e as declarações obrigatórias ao final da ficha.');
 
     const payload = {
-      start_date: t('start_date'), sport: t('sport'), team: t('team'),
+      start_date: t('start_date'), sport: acts.filter(a => actIds.includes(a.id)).map(a => a.name).join(', ').slice(0, 80), activity_ids: actIds, team: t('team'),
       full_name: f.full_name.trim(), birth_date: f.birth_date, age: age >= 0 && age <= 120 ? age : null,
       rg: t('rg'), cpf: t('cpf'), sex: t('sex'), marital_status: t('marital_status'), nationality: t('nationality'), race_color: t('race_color'),
       father_name: showParents ? t('father_name') : null, father_rg: showParents ? t('father_rg') : null,
@@ -155,9 +159,9 @@ export default function Enroll() {
           <section className="enrollCard"><h2>Inscrição</h2>
             <div className="grid3">
               <Field label="Data de início"><input type="date" value={val('start_date')} onChange={set('start_date')} /></Field>
-              <Field label="Esporte"><input value={val('sport')} onChange={set('sport')} maxLength={40} /></Field>
               <Field label="Equipe"><input value={val('team')} onChange={set('team')} maxLength={60} /></Field>
-            </div></section>
+            </div>
+            <div className="fieldLabel"><b>Atividade(s) que vai praticar *</b>{actsLoaded ? <ActivityChoice list={acts} value={actIds} onChange={setActIds} /> : <small>Carregando atividades…</small>}</div></section>
 
           <section className="enrollCard"><h2>Dados do aluno</h2>
             <div className="photoField">

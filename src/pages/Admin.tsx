@@ -12,6 +12,7 @@ import { COLUMN_LABELS, LABELS, modules, type FieldDef, type ModuleDef } from '.
 import Brand from '../components/Brand';
 import RollCall from './RollCall';
 import PhotoUploader from '../components/PhotoUploader';
+import ActivityPicker from '../components/ActivityPicker';
 import { photoUrl, PHOTO_BUCKET } from '../lib/photo';
 import EnrollmentSheet from '../components/EnrollmentSheet';
 import { categoryFor as catFor, ageFromISO as ageISO } from '../lib/enrollment';
@@ -23,11 +24,11 @@ const iconMap: Record<string, any> = {
   students: Users, guardians: HeartHandshake, classes: CalendarCheck, attendance: ClipboardList, graduations: GraduationCap,
   cards: CreditCard, card_requests: CreditCard, assessments: Activity, contents: BookOpen, contributions: HandCoins,
   expenses: FileText, donations: HeartHandshake, materials: HeartHandshake, announcements: FileText, users: ShieldCheck,
-  audit: LockKeyhole, analytics: ChartNoAxesColumn, interests: UserPlus, settings: Settings, payment: HandCoins, rollcall: CalendarCheck, enrollments: FileText,
+  audit: LockKeyhole, analytics: ChartNoAxesColumn, interests: UserPlus, settings: Settings, payment: HandCoins, rollcall: CalendarCheck, enrollments: FileText, activities: GraduationCap, teacher_activities: ShieldCheck,
 };
 
 const navGroups = [
-  { label: 'GESTÃO', items: ['dashboard', 'students', 'guardians', 'interests', 'enrollments', 'users', 'classes', 'rollcall', 'attendance', 'graduations', 'cards', 'card_requests', 'assessments'] },
+  { label: 'GESTÃO', items: ['dashboard', 'students', 'guardians', 'interests', 'enrollments', 'users', 'activities', 'teacher_activities', 'classes', 'rollcall', 'attendance', 'graduations', 'cards', 'card_requests', 'assessments'] },
   { label: 'PROJETO', items: ['contents', 'announcements'] },
   { label: 'TRANSPARÊNCIA', items: ['contributions', 'settings', 'payment', 'expenses', 'donations', 'materials', 'analytics', 'audit'] },
 ];
@@ -58,9 +59,10 @@ const categoryFor = (age: number | null | undefined) => (age == null ? null : ag
 const fmtDate = (d: string) => d.split('-').reverse().join('/');
 
 function fmtCell(def: ModuleDef, key: string, v: any, refs: Record<string, Map<string, string>>): string {
-  if (v === null || v === undefined || v === '') return '—';
+  if (v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0)) return '—';
   const field = def.fields.find(f => f.name === key);
   if (field?.ref) return refs[field.ref.table]?.get(v) ?? String(v).slice(0, 8) + '…';
+  if (key === 'student_activities' && Array.isArray(v)) return v.filter((x: any) => x.status === 'active' && x.activities?.name).map((x: any) => x.activities.name).join(', ') || '—';
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
   if (key === 'amount') return brl(v);
   if (key === 'created_at' || key === 'requested_at') return new Date(v).toLocaleString('pt-BR');
@@ -157,11 +159,16 @@ export default function Admin() {
     for (const r of tables) {
       if (refs[r.table]) continue;
       const { data } = await supabase.from(r.table).select(`id,${r.label}${r.flag ? ',' + r.flag : ''}`).order(r.label).limit(1000);
-      const list = ((data as unknown as Row[]) || []).map(x => ({ id: x.id as string, label: x[r.label] as string, flag: r.flag ? x[r.flag] : undefined }));
+      let list = ((data as unknown as Row[]) || []).map(x => ({ id: x.id as string, label: x[r.label] as string, flag: r.flag ? x[r.flag] : undefined }));
+      if (r.table === 'activities' && profile && profile.role !== 'admin') {   // professor só escolhe a(s) atividade(s) dele
+        const { data: mine } = await supabase.from('teacher_activities').select('activity_id').eq('profile_id', profile.id);
+        const ids = new Set(((mine as { activity_id: string }[]) || []).map(x => x.activity_id));
+        list = list.filter(x => ids.has(x.id));
+      }
       setRefs(p => ({ ...p, [r.table]: new Map(list.map(x => [x.id, x.label])) }));
       setRefOptions(p => ({ ...p, [r.table]: list }));
     }
-  }, [refs]);
+  }, [refs, profile]);
 
   // ---- carregamento dos registros do módulo ----
   const load = useCallback(async () => {
@@ -214,7 +221,7 @@ export default function Admin() {
   }, [data, search, def, refs]);
 
   const canWrite = !!def && !def.readOnly && (isAdmin || !!def.staffWrite);
-  const canCreate = canWrite && !def?.noCreate && !(def?.singleRow && data.length > 0);
+  const canCreate = canWrite && !def?.noCreate && !(def?.singleRow && data.length > 0) && !(def?.key === 'students' && !isAdmin);
   const canEdit = canWrite && (isAdmin || def?.staffWrite === 'full');
   const canDelete = canWrite && isAdmin && !def?.noDelete;
 
@@ -254,15 +261,17 @@ export default function Admin() {
     const age: number | null = row.birth_date ? ageFrom(row.birth_date) : (row.age as number | null);
     const category = categoryFor(age);
     const notes = [`Origem: formulário do site (${new Date(row.created_at).toLocaleDateString('pt-BR')}).`, row.message ? `Mensagem: ${row.message}` : ''].filter(Boolean).join(' ');
-    const { error } = await supabase.from('students').insert({
+    const { data: newSt, error } = await supabase.from('students').insert({
       full_name: row.full_name, phone: row.phone, email: row.email || null, birth_date: row.birth_date || null, category, status: 'active', notes,
       came_from_other_academy: row.came_from_other_academy, previous_training_time: row.previous_training_time, previous_belt: row.previous_belt,
       previous_degrees: row.previous_degrees, previous_master: row.previous_master,
-    });
-    if (error) { setMessage('Não foi possível criar o aluno: ' + friendlyError(error)); return; }
+    }).select('id').single();
+    if (error || !newSt) { setMessage('Não foi possível criar o aluno: ' + (error ? friendlyError(error) : 'sem retorno')); return; }
+    const wanted = (row.activity_ids as string[] | null) || [];
+    if (wanted.length) await supabase.from('student_activities').insert(wanted.map(a => ({ student_id: newSt.id, activity_id: a })));
     await supabase.from('public_interest').update({ status: 'approved' }).eq('id', row.id);
     setActive('students');
-    setMessage(`Aluno "${row.full_name}" criado como Ativo e já aparece na Chamada. Complete o cadastro (nascimento, responsável) quando puder.`);
+    setMessage(`Aluno "${row.full_name}" criado como Ativo.` + (wanted.length ? ' Atividades já vinculadas.' : ' ATENÇÃO: nenhuma atividade informada — abra o lápis do aluno e marque a(s) atividade(s), senão ele não aparece na chamada.') + ' Complete o cadastro quando puder.');
   }
 
   async function openSheet(listRow: Row) {
@@ -290,6 +299,8 @@ export default function Admin() {
     if (error || !st) { setMessage('Não foi possível criar o aluno: ' + (error ? friendlyError(error) : 'sem retorno')); return; }
     const sid = st.id as string;
     const problems: string[] = [];
+    const wantedActs = (row.activity_ids as string[] | null) || [];
+    if (wantedActs.length) { const ra = await supabase.from('student_activities').insert(wantedActs.map(a => ({ student_id: sid, activity_id: a }))); if (ra.error) problems.push('atividades: ' + ra.error.message); }
     const run = async (label: string, p: PromiseLike<{ error: any }>) => { const r = await p; if (r.error) problems.push(`${label}: ${r.error.message}`); };
     if (row.photo_data) {
       try {
@@ -310,7 +321,7 @@ export default function Admin() {
     ]));
     await supabase.from('enrollments').update({ student_id: sid, status: 'approved' }).eq('id', row.id);
     setActive('students');
-    setMessage(`Aluno "${row.full_name}" criado como Ativo (com foto, contato de emergência, saúde e consentimentos) e já aparece na Chamada.` + (problems.length ? ' Atenção, faltou gravar: ' + problems.join('; ') : ' Revise o cadastro quando puder.'));
+    setMessage(`Aluno "${row.full_name}" criado como Ativo (com foto, contato de emergência, saúde e consentimentos) e já aparece na Chamada.` + (wantedActs.length ? '' : ' ATENÇÃO: a ficha não trazia atividade — marque no lápis do aluno, senão ele não aparece na chamada.') + (problems.length ? ' Atenção, faltou gravar: ' + problems.join('; ') : ' Revise o cadastro quando puder.'));
   }
 
   async function openCard(row: Row) {
@@ -478,13 +489,13 @@ export default function Admin() {
                   <div className="empty"><ClipboardList size={36} /><b>Nenhum registro encontrado</b><p>Quando houver dados, eles aparecerão aqui.</p></div>
                 ) : (
                   <div className="tableWrap"><table>
-                    <thead><tr>{def.columns.map(k => <th key={k}>{COLUMN_LABELS[k] || k.replace(/_/g, ' ')}</th>)}{showActions && <th>Ações</th>}</tr></thead>
+                    <thead><tr>{def.columns.map(k => <th key={k}>{def.key === 'activities' && k === 'name' ? 'Atividade' : COLUMN_LABELS[k] || k.replace(/_/g, ' ')}</th>)}{showActions && <th>Ações</th>}</tr></thead>
                     <tbody>{filtered.map(row => (
                       <tr key={row.id}>
                         {def.columns.map(k => <td key={k} title={fmtCell(def, k, row[k], refs)}>{fmtCell(def, k, row[k], refs).slice(0, 100)}</td>)}
                         {showActions && <td><div className="rowActions">
                           {def.key === 'enrollments' && <button onClick={() => openSheet(row)} title="Ver / imprimir ficha"><Eye size={15} /></button>}
-                          {def.key === 'enrollments' && !row.student_id && <button onClick={() => convertEnrollment(row)} title="Virar aluno"><UserPlus size={15} /></button>}
+                          {def.key === 'enrollments' && isAdmin && !row.student_id && <button onClick={() => convertEnrollment(row)} title="Virar aluno"><UserPlus size={15} /></button>}
                           {def.key === 'interests' && <button onClick={() => setViewRow(row)} title="Ver tudo"><Eye size={15} /></button>}
                           {def.key === 'interests' && <button onClick={() => convertInterest(row)} title="Virar aluno"><UserPlus size={15} /></button>}
                           {def.key === 'cards' && <button onClick={() => openCard(row)} title="Ver carteirinha / QR"><QrCode size={15} /></button>}
@@ -510,6 +521,8 @@ export default function Admin() {
               {def.key === 'students' && editing && isAdmin && (
                 <PhotoUploader studentId={editing.id} photoPath={editing.photo_path ?? null} onDone={p => { setEditing({ ...editing, photo_path: p }); load(); }} />
               )}
+              {def.key === 'students' && editing && isAdmin && <ActivityPicker studentId={editing.id} notify={setMessage} onChange={load} />}
+              {def.key === 'students' && !editing && <div className="notice">Depois de salvar, abra o lápis do aluno para marcar as atividades (1 ou 2).</div>}
               {def.fields.map(renderField)}
               <div className="modalActions">
                 <button type="button" className="cancelButton" onClick={() => setModal(false)}>Cancelar</button>

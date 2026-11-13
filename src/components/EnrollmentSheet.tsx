@@ -9,7 +9,7 @@ const withDetail = (flag: any, detail: any) => (flag === true ? `Sim${detail ? '
 
 export default function EnrollmentSheet({ row, onClose }: { row: Row; onClose: () => void }) {
   const sections: { title: string; rows: [string, string][] }[] = [
-    { title: 'Inscrição', rows: [['Data de início', date(row.start_date)], ['Esporte', txt(row.sport)], ['Equipe', txt(row.team)], ['Situação da ficha', txt(row.status)]] },
+    { title: 'Inscrição', rows: [['Data de início', date(row.start_date)], ['Atividade(s)', txt(row.sport)], ['Equipe', txt(row.team)], ['Situação da ficha', txt(row.status)]] },
     { title: 'Aluno', rows: [['Nome', txt(row.full_name)], ['Nascimento', `${date(row.birth_date)}${row.age != null ? ` (${row.age} anos)` : ''}`], ['RG', txt(row.rg)], ['CPF', txt(row.cpf)],
       ['Sexo', row.sex === 'M' ? 'Masculino' : row.sex === 'F' ? 'Feminino' : '—'], ['Estado civil', txt(row.marital_status)], ['Nacionalidade', txt(row.nationality)], ['Cor/Raça', txt(row.race_color)]] },
     { title: 'Filiação', rows: [['Pai', txt(row.father_name)], ['RG / CPF do pai', `${txt(row.father_rg)} / ${txt(row.father_cpf)}`], ['Nasc. do pai', date(row.father_birth_date)],

@@ -6,19 +6,22 @@ import Brand from '../components/Brand';
 
 type Tech = {
   id: string; title: string; description: string | null; category: string | null; belt: string | null; difficulty: string | null;
-  content_type: string | null; video_url: string | null; steps: string | null; common_errors: string | null; safety_notes: string | null; sort_order: number;
+  activity_id: string | null; content_type: string | null; video_url: string | null; steps: string | null; common_errors: string | null; safety_notes: string | null; sort_order: number;
 };
 const lines = (s: string | null) => (s || '').split('\n').map(x => x.trim()).filter(Boolean);
-const COLS = 'id,title,description,category,belt,difficulty,content_type,video_url,steps,common_errors,safety_notes,sort_order';
+const COLS = 'id,activity_id,title,description,category,belt,difficulty,content_type,video_url,steps,common_errors,safety_notes,sort_order';
 
 export default function Techniques() {
   const [items, setItems] = useState<Tech[] | null>(null);
   const [error, setError] = useState('');
   const [q, setQ] = useState('');
   const [diff, setDiff] = useState('');
+  const [acts, setActs] = useState<{ id: string; name: string }[]>([]);
+  const [act, setAct] = useState('');
 
   useEffect(() => {
     if (!supabase) { setItems([]); setError('O sistema ainda não foi configurado.'); return; }
+    supabase.from('activities').select('id,name').eq('active', true).order('sort_order').then(({ data }) => setActs((data as { id: string; name: string }[]) || []));
     supabase.from('learning_contents').select(COLS).eq('published', true).order('sort_order').order('title').then(({ data, error: err }) => {
       if (err) setError('Não foi possível carregar as técnicas agora.');
       setItems((data as Tech[]) || []);
@@ -26,16 +29,18 @@ export default function Techniques() {
   }, []);
 
   const filtered = useMemo(() => (items || []).filter(t =>
+    (!act || t.activity_id === act || !t.activity_id) &&
     (!diff || t.difficulty === diff) &&
-    (!q.trim() || (t.title + ' ' + (t.description || '')).toLowerCase().includes(q.trim().toLowerCase()))), [items, q, diff]);
+    (!q.trim() || (t.title + ' ' + (t.description || '')).toLowerCase().includes(q.trim().toLowerCase()))), [items, q, diff, act]);
 
   return (
     <main className="enrollPage">
       <div className="enrollWrap">
         <header className="enrollHead"><Brand /><Link to="/" className="enrollBack">← Voltar ao site</Link></header>
-        <h1>Técnicas de <span>jiu-jitsu.</span></h1>
+        <h1>Técnicas e <span>treinos.</span></h1>
         <p className="enrollIntro">Passo a passo para revisar em casa o que foi ensinado no treino. Treine sempre com um colega de confiança, com calma, e siga as orientações do professor. Quem bate (tap) ou avisa, é solto na hora.</p>
 
+        {acts.length > 1 && <div className="actTags" role="group" aria-label="Atividade"><button type="button" className={!act ? 'on' : ''} onClick={() => setAct('')}>Todas</button>{acts.map(a => <button type="button" key={a.id} className={act === a.id ? 'on' : ''} onClick={() => setAct(a.id)}>{a.name}</button>)}</div>}
         <div className="techFilters">
           <div className="searchBox techSearch"><Search size={17} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar técnica (ex.: passagem)…" /></div>
           <select value={diff} onChange={e => setDiff(e.target.value)} aria-label="Dificuldade">

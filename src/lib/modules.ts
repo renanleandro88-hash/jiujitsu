@@ -24,6 +24,7 @@ export type ModuleDef = {
   adminOnly?: boolean;               // equipe (teacher/assistant) não vê o módulo
   staffWrite?: 'full' | 'insert';    // o que a equipe pode gravar (espelha as policies RLS)
   readOnly?: boolean;                // sem criar/editar/excluir
+  staffReadOnly?: boolean;           // equipe só visualiza (vê apenas o que a atividade dela permite)
   noCreate?: boolean;                // só edita registros existentes
   noDelete?: boolean;
   select?: string;                   // colunas da lista (evita baixar campos pesados)
@@ -35,6 +36,8 @@ const ref = {
   student: { table: 'students', label: 'full_name', flag: 'status' },
   activeStudent: { table: 'students', label: 'full_name', flag: 'status', activeOnly: 'active' },
   class: { table: 'classes', label: 'name' },
+  activity: { table: 'activities', label: 'name' },
+  profile: { table: 'profiles', label: 'full_name' },
 } satisfies Record<string, RefDef>;
 
 const CAT = ['Baby', 'Kids', 'Juvenil', 'Adulto'];
@@ -44,7 +47,8 @@ export const modules: ModuleDef[] = [
   {
     key: 'students', title: 'Alunos', table: 'students', description: 'Cadastro e situação dos participantes. A matrícula é gerada automaticamente (AAAA-0001…) e é a mesma da carteirinha. Para enviar a foto, clique no lápis do aluno.',
     staffWrite: 'full', noDelete: true,
-    columns: ['student_number', 'full_name', 'category', 'status', 'phone', 'entry_date'],
+    select: '*,student_activities(status,activities(name))',
+    columns: ['student_number', 'full_name', 'student_activities', 'category', 'status', 'phone', 'entry_date'],
     fields: [
       { name: 'student_number', label: 'Matrícula (automática)', readOnly: true },
       { name: 'full_name', label: 'Nome completo', required: true },
@@ -77,8 +81,9 @@ export const modules: ModuleDef[] = [
   {
     key: 'classes', title: 'Turmas e aulas', table: 'classes', description: 'Turmas, horários e professores.',
     staffWrite: 'full', noDelete: true,
-    columns: ['name', 'category', 'weekday', 'start_time', 'end_time', 'teacher_name'],
+    columns: ['activity_id', 'name', 'category', 'weekday', 'start_time', 'end_time', 'teacher_name'],
     fields: [
+      { name: 'activity_id', label: 'Atividade', required: true, ref: ref.activity },
       { name: 'name', label: 'Nome da turma', required: true },
       { name: 'category', label: 'Categoria', options: CAT },
       { name: 'weekday', label: 'Dia da semana', options: ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'] },
@@ -103,11 +108,12 @@ export const modules: ModuleDef[] = [
   {
     key: 'graduations', title: 'Graduações', table: 'graduation_history', description: 'Histórico esportivo de faixas e graus.',
     staffWrite: 'full', noDelete: true, orderBy: 'graduation_date',
-    columns: ['graduation_date', 'student_id', 'previous_belt', 'new_belt', 'degrees', 'teacher_name'],
+    columns: ['graduation_date', 'activity_id', 'student_id', 'previous_belt', 'new_belt', 'degrees', 'teacher_name'],
     fields: [
-      { name: 'student_id', label: 'Aluno', required: true, ref: ref.activeStudent },
-      { name: 'previous_belt', label: 'Faixa anterior' },
-      { name: 'new_belt', label: 'Nova faixa', required: true },
+      { name: 'activity_id', label: 'Atividade', required: true, ref: ref.activity },
+      { name: 'student_id', label: 'Aluno (precisa estar inscrito na atividade)', required: true, ref: ref.activeStudent },
+      { name: 'previous_belt', label: 'Graduação anterior (faixa, corda, nível…)' },
+      { name: 'new_belt', label: 'Nova graduação (faixa, corda, nível…)', required: true },
       { name: 'degrees', label: 'Graus (0–4)', type: 'number', min: 0, max: 4, step: 1 },
       { name: 'graduation_date', label: 'Data', type: 'date', required: true },
       { name: 'teacher_name', label: 'Professor responsável' },
@@ -142,9 +148,10 @@ export const modules: ModuleDef[] = [
   {
     key: 'assessments', title: 'Avaliações', table: 'student_assessments', description: 'Avaliação privada. Não promove faixa automaticamente.',
     staffWrite: 'full', noDelete: true, orderBy: 'assessment_date',
-    columns: ['assessment_date', 'student_id', 'discipline_score', 'attendance_score', 'technical_score', 'fitness_score', 'overall_score'],
+    columns: ['assessment_date', 'activity_id', 'student_id', 'discipline_score', 'attendance_score', 'technical_score', 'fitness_score', 'overall_score'],
     fields: [
-      { name: 'student_id', label: 'Aluno', required: true, ref: ref.activeStudent },
+      { name: 'activity_id', label: 'Atividade', required: true, ref: ref.activity },
+      { name: 'student_id', label: 'Aluno (precisa estar inscrito na atividade)', required: true, ref: ref.activeStudent },
       { name: 'assessment_date', label: 'Data', type: 'date', required: true },
       { name: 'discipline_score', label: 'Disciplina (0–10)', type: 'number', min: 0, max: 10, step: 0.1 },
       { name: 'attendance_score', label: 'Frequência (0–10)', type: 'number', min: 0, max: 10, step: 0.1 },
@@ -157,8 +164,9 @@ export const modules: ModuleDef[] = [
   {
     key: 'contents', title: 'Biblioteca de ensino', table: 'learning_contents', description: 'Técnicas e exercícios exibidos na página pública /tecnicas quando estão publicados. Em Passo a passo, Erros comuns e Cuidados, escreva uma linha por item, sem numerar.',
     staffWrite: 'full', noDelete: true,
-    columns: ['title', 'difficulty', 'belt', 'content_type', 'published', 'sort_order'],
+    columns: ['activity_id', 'title', 'difficulty', 'belt', 'content_type', 'published', 'sort_order'],
     fields: [
+      { name: 'activity_id', label: 'Atividade', ref: ref.activity, blankLabel: 'Geral (todas as atividades)' },
       { name: 'title', label: 'Título', required: true },
       { name: 'description', label: 'Descrição', type: 'textarea' },
       { name: 'category', label: 'Categoria', options: CAT },
@@ -171,6 +179,25 @@ export const modules: ModuleDef[] = [
       { name: 'safety_notes', label: 'Cuidados de segurança', type: 'textarea' },
       { name: 'sort_order', label: 'Ordem de exibição (menor aparece primeiro)', type: 'number', step: 1 },
       { name: 'published', label: 'Publicado no site', type: 'boolean' },
+    ],
+  },
+  {
+    key: 'activities', title: 'Atividades', table: 'activities', adminOnly: true, noDelete: true, orderBy: 'sort_order',
+    description: 'Modalidades oferecidas (Jiu-Jitsu, Capoeira, Boxe…). Para criar uma nova, clique em Novo. Para esconder da ficha, desmarque Ativa.',
+    columns: ['name', 'active', 'sort_order'],
+    fields: [
+      { name: 'name', label: 'Nome da atividade', required: true, maxLength: 60 },
+      { name: 'sort_order', label: 'Ordem de exibição', type: 'number', step: 1 },
+      { name: 'active', label: 'Ativa (aparece na ficha)', type: 'boolean' },
+    ],
+  },
+  {
+    key: 'teacher_activities', title: 'Professores por atividade', table: 'teacher_activities', adminOnly: true,
+    description: 'Defina quem ensina cada atividade. O professor só vê alunos, turmas, chamada, graduações e fichas da(s) atividade(s) dele.',
+    columns: ['profile_id', 'activity_id', 'created_at'],
+    fields: [
+      { name: 'profile_id', label: 'Professor (usuário)', required: true, ref: ref.profile },
+      { name: 'activity_id', label: 'Atividade', required: true, ref: ref.activity },
     ],
   },
   {
@@ -190,10 +217,10 @@ export const modules: ModuleDef[] = [
     fields: [{ name: 'status', label: 'Situação', options: ['pending', 'reviewed', 'approved', 'rejected'], required: true }],
   },
   {
-    key: 'enrollments', title: 'Fichas de inscrição', table: 'enrollments', adminOnly: true, noCreate: true,
-    select: 'id,created_at,status,student_id,full_name,birth_date,phone1',
+    key: 'enrollments', title: 'Fichas de inscrição', table: 'enrollments', staffReadOnly: true, noCreate: true,
+    select: 'id,created_at,status,student_id,full_name,birth_date,phone1,sport',
     description: 'Fichas enviadas online (com saúde e termos aceitos). Olho: ver/imprimir. Pessoa com +: criar o aluno. Lápis: mudar a situação.',
-    columns: ['created_at', 'full_name', 'birth_date', 'phone1', 'status', 'student_id'],
+    columns: ['created_at', 'full_name', 'sport', 'birth_date', 'phone1', 'status', 'student_id'],
     fields: [{ name: 'status', label: 'Situação', options: ['pending', 'reviewed', 'approved', 'rejected'], required: true }],
   },
   {
@@ -306,6 +333,7 @@ export const LABELS: Record<string, string> = {
 };
 
 export const COLUMN_LABELS: Record<string, string> = {
+  student_activities: 'Atividades', activity_id: 'Atividade', sport: 'Atividade(s)', profile_id: 'Professor',
   full_name: 'Nome', created_at: 'Criado em', student_id: 'Aluno', class_id: 'Turma', attendance_date: 'Data', teacher_name: 'Professor',
   graduation_date: 'Data', previous_belt: 'Faixa anterior', new_belt: 'Nova faixa', degrees: 'Graus', card_number: 'Nº carteirinha',
   issued_at: 'Emissão', expires_at: 'Validade', requested_at: 'Solicitado em', request_type: 'Tipo', assessment_date: 'Data',

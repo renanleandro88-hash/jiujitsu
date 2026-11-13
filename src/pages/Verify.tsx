@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import { photoUrl } from '../lib/photo';
 import Brand from '../components/Brand';
 
-type Result = { student_display_name: string; student_number: string; belt_name: string | null; degrees: number | null; card_status: string; expires_at: string | null; photo_path: string | null };
+type Result = { student_display_name: string; student_number: string; activities: { name: string; graduation: string | null }[] | null; card_status: string; expires_at: string | null; photo_path: string | null };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fmt = (d: string) => d.split('-').reverse().join('/');
 
@@ -40,7 +40,7 @@ export default function Verify() {
             <dl>
               <dt>Nome</dt><dd className="idName">{card.student_display_name}</dd>
               <dt>Matrícula</dt><dd>{card.student_number}</dd>
-              <dt>Graduação</dt><dd>{card.belt_name ? `${card.belt_name}${card.degrees ? ` · ${card.degrees}º grau` : ''}` : 'Não registrada'}</dd>
+              <dt>Atividades</dt><dd>{card.activities && card.activities.length ? <span className="idActs">{card.activities.map(a => <span key={a.name}><span>{a.name}</span><b>{a.graduation || 'Sem graduação'}</b></span>)}</span> : 'Não registrada'}</dd>
               <dt>Validade</dt><dd>{card.expires_at ? fmt(card.expires_at) : '—'}</dd>
             </dl>
           </div>

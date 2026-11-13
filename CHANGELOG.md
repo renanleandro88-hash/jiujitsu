@@ -74,3 +74,11 @@
 - Na administração a foto aparece na ficha (e na impressão). Ao **Virar aluno**, a foto é copiada para o cadastro do aluno e passa a constar na carteirinha e na carteirinha digital.
 - A lista de fichas não baixa mais as fotos (carrega só ao abrir/converter).
 - Migração `supabase/migrations/006_foto_na_ficha.sql` (também no `schema.sql`).
+
+## Multi-atividades (migração 007)
+- Atividades: Jiu-Jitsu, Capoeira, Boxe, Muay Thai e Treinamento Físico (novas podem ser criadas em Gestão → Atividades).
+- Professores por atividade: cada professor só vê alunos, turmas, chamada, frequência, graduações, avaliações e fichas da(s) atividade(s) dele (regras no banco/RLS, não só na tela).
+- Aluno com uma matrícula e uma carteirinha; a carteirinha digital lista as atividades e a graduação de cada uma (campo livre: faixa, corda, nível).
+- Ficha de inscrição e formulário do site: escolha de 1 ou 2 atividades.
+- Chamada lista só alunos inscritos na atividade da turma. Biblioteca de técnicas pode ser geral ou por atividade.
+- Professores não criam alunos (o administrador cria pela ficha); tudo que existia foi vinculado a Jiu-Jitsu.

@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { CheckCheck, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-type Cls = { id: string; name: string; category: string | null; weekday: string | null; start_time: string | null; teacher_name: string | null };
+type Cls = { id: string; name: string; category: string | null; weekday: string | null; start_time: string | null; teacher_name: string | null; activity_id: string; activities: { name: string } | null };
 type Stu = { id: string; full_name: string; category: string | null };
+type Link = { activity_id: string; students: (Stu & { status: string }) | null };
 type St = 'present' | 'absent' | 'excused';
 type Marks = Record<string, St>;
 
@@ -20,7 +21,7 @@ const todayStr = () => {
 
 export default function RollCall({ profile, notify }: { profile: { id: string; full_name: string }; notify: (m: string) => void }) {
   const [classes, setClasses] = useState<Cls[]>([]);
-  const [students, setStudents] = useState<Stu[]>([]);
+  const [links, setLinks] = useState<Link[]>([]);
   const [pendingNames, setPendingNames] = useState<string[]>([]);
   const [classId, setClassId] = useState('');
   const [date, setDate] = useState(todayStr());
@@ -36,15 +37,15 @@ export default function RollCall({ profile, notify }: { profile: { id: string; f
     const s = supabase;
     (async () => {
       const [c, st, pend] = await Promise.all([
-        s.from('classes').select('id,name,category,weekday,start_time,teacher_name').eq('active', true).order('name'),
-        s.from('students').select('id,full_name,category').eq('status', 'active').order('full_name').limit(1000),
+        s.from('classes').select('id,name,category,weekday,start_time,teacher_name,activity_id,activities(name)').eq('active', true).order('name'),
+        s.from('student_activities').select('activity_id,students(id,full_name,category,status)').eq('status', 'active').limit(2000),
         s.from('students').select('full_name').eq('status', 'pending').order('full_name').limit(50),
       ]);
       setPendingNames(((pend.data as { full_name: string }[]) || []).map(x => x.full_name));
       if (c.error) notify('Falha ao carregar turmas: ' + c.error.message);
       if (st.error) notify('Falha ao carregar alunos: ' + st.error.message);
       setClasses((c.data as Cls[]) || []);
-      setStudents((st.data as Stu[]) || []);
+      setLinks(((st.data as unknown as Link[]) || []).filter(l => l.students && l.students.status === 'active'));
       setLoading(false);
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -67,8 +68,10 @@ export default function RollCall({ profile, notify }: { profile: { id: string; f
   const cls = classes.find(c => c.id === classId);
   const visible = useMemo(() => {
     if (!cls) return [];
-    return students.filter(s => showAll || !cls.category || !s.category || s.category === cls.category || marks[s.id]);
-  }, [students, cls, showAll, marks]);
+    return links.filter(l => l.activity_id === cls.activity_id).map(l => l.students as Stu)
+      .filter(s => showAll || !cls.category || !s.category || s.category === cls.category || marks[s.id])
+      .sort((a, b) => a.full_name.localeCompare(b.full_name, 'pt-BR'));
+  }, [links, cls, showAll, marks]);
 
   const changed = Object.keys(marks).filter(id => marks[id] !== saved[id]);
   const counts = { present: 0, absent: 0, excused: 0, none: 0 };
@@ -96,14 +99,14 @@ export default function RollCall({ profile, notify }: { profile: { id: string; f
   return (
     <>
       <div className="pageIntro"><div><div className="overline">FREQUÊNCIA</div><h1>Chamada <span>por turma.</span></h1>
-        <p>Escolha a turma e a data, marque cada aluno e salve tudo de uma vez. Só aparecem alunos com situação Ativo.</p></div></div>
+        <p>Escolha a turma e a data, marque cada aluno e salve tudo de uma vez. Só aparecem alunos com situação Ativo e inscritos na atividade da turma.</p></div></div>
 
       <div className="tablePanel">
         <div className="rollFilters">
           <label>Turma
             <select value={classId} onChange={e => setClassId(e.target.value)}>
               <option value="">Selecione…</option>
-              {classes.map(c => <option key={c.id} value={c.id}>{c.name}{c.weekday ? ` · ${c.weekday}` : ''}{c.start_time ? ` ${c.start_time.slice(0, 5)}` : ''}</option>)}
+              {classes.map(c => <option key={c.id} value={c.id}>{c.activities?.name ? c.activities.name + ' · ' : ''}{c.name}{c.weekday ? ` · ${c.weekday}` : ''}{c.start_time ? ` ${c.start_time.slice(0, 5)}` : ''}</option>)}
             </select>
           </label>
           <label>Data<input type="date" value={date} onChange={e => setDate(e.target.value)} max={todayStr()} /></label>
@@ -118,7 +121,7 @@ export default function RollCall({ profile, notify }: { profile: { id: string; f
         ) : !cls ? (
           <div className="empty"><b>Selecione uma turma</b></div>
         ) : visible.length === 0 ? (
-          <div className="empty"><b>Nenhum aluno ativo para esta turma</b><p>Cadastre alunos em “Alunos” e mude a situação para Ativo.{cls.category ? ` Esta turma é ${cls.category}: confira a categoria dos alunos ou marque “Mostrar alunos de todas as categorias”.` : ''}</p></div>
+          <div className="empty"><b>Nenhum aluno ativo para esta turma</b><p>Confira se há alunos Ativos inscritos na atividade desta turma (em “Alunos”, lápis → Atividades).{cls.category ? ` Esta turma é ${cls.category}: confira a categoria dos alunos ou marque “Mostrar alunos de todas as categorias”.` : ''}</p></div>
         ) : (
           <>
             <div className="rollSummary">

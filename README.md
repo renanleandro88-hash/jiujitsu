@@ -46,3 +46,6 @@ O `vercel.json` já redireciona as rotas (`/login`, `/admin`, `/verificar/...`) 
 
 ## Alterações da revisão
 Veja `CHANGELOG.md`.
+
+## Atividades (migração 007)
+Rode `supabase/migrations/007_atividades.sql` no SQL Editor (depois da 006). Em seguida, no painel: Gestão → **Professores por atividade** para ligar cada professor à sua atividade; em **Alunos** (lápis) marque as atividades de cada aluno.
