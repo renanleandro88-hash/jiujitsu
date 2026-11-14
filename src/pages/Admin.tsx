@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   Activity, AlertCircle, BookOpen, CalendarCheck, ChartNoAxesColumn, ClipboardList, CreditCard, Edit, Eye, FileText,
   GraduationCap, HandCoins, HeartHandshake, Home, LockKeyhole, LogOut, Menu, Plus, Printer, QrCode, RefreshCw, Search,
-  Settings, ShieldCheck, Trash2, UserPlus, Users, X,
+  KeyRound, Settings, ShieldCheck, Trash2, UserPlus, Users, X,
 } from 'lucide-react';
 import { supabase, ready } from '../lib/supabase';
 import { COLUMN_LABELS, LABELS, modules, type FieldDef, type ModuleDef } from '../lib/modules';
@@ -13,6 +13,8 @@ import Brand from '../components/Brand';
 import RollCall from './RollCall';
 import PhotoUploader from '../components/PhotoUploader';
 import ActivityPicker from '../components/ActivityPicker';
+import UserCreator from '../components/UserCreator';
+import { adminUsersApi } from '../lib/adminApi';
 import { photoUrl, PHOTO_BUCKET } from '../lib/photo';
 import EnrollmentSheet from '../components/EnrollmentSheet';
 import { categoryFor as catFor, ageFromISO as ageISO } from '../lib/enrollment';
@@ -125,6 +127,7 @@ export default function Admin() {
   const [detail, setDetail] = useState<Row | null>(null);
   const [viewRow, setViewRow] = useState<Row | null>(null);
   const [sheet, setSheet] = useState<Row | null>(null);
+  const [userModal, setUserModal] = useState(false);
   const reqId = useRef(0);
 
   const isAdmin = profile?.role === 'admin';
@@ -227,6 +230,7 @@ export default function Admin() {
 
   function newRecord() {
     if (!def) return;
+    if (def.key === 'users') { setUserModal(true); return; }
     const f = initialForm(def);
     if (def.key === 'students') { f.status = 'pending'; }
     setEditing(null); setForm(f); setModal(true);
@@ -272,6 +276,13 @@ export default function Admin() {
     await supabase.from('public_interest').update({ status: 'approved' }).eq('id', row.id);
     setActive('students');
     setMessage(`Aluno "${row.full_name}" criado como Ativo.` + (wanted.length ? ' Atividades já vinculadas.' : ' ATENÇÃO: nenhuma atividade informada — abra o lápis do aluno e marque a(s) atividade(s), senão ele não aparece na chamada.') + ' Complete o cadastro quando puder.');
+  }
+
+  async function resetPassword(row: Row) {
+    const pw = window.prompt(`Nova senha para ${row.full_name} (mínimo 8 caracteres):`);
+    if (!pw) return;
+    const r = await adminUsersApi({ action: 'set_password', id: row.id, password: pw });
+    setMessage(r.ok ? `Senha de ${row.full_name} alterada. Avise a pessoa.` : 'Não foi possível trocar a senha: ' + r.error);
   }
 
   async function openSheet(listRow: Row) {
@@ -415,7 +426,7 @@ export default function Admin() {
     return <label key={field.name} className={field.type === 'textarea' ? 'wide' : ''}>{field.label}{field.required ? ' *' : ''}{control}</label>;
   }
 
-  const showActions = !!def && (canEdit || canDelete || def.key === 'cards' || def.key === 'interests' || def.key === 'enrollments' || def.readOnly);
+  const showActions = !!def && (canEdit || canDelete || def.key === 'users' || def.key === 'cards' || def.key === 'interests' || def.key === 'enrollments' || def.readOnly);
 
   return (
     <div className="adminLayout">
@@ -498,6 +509,7 @@ export default function Admin() {
                           {def.key === 'enrollments' && isAdmin && !row.student_id && <button onClick={() => convertEnrollment(row)} title="Virar aluno"><UserPlus size={15} /></button>}
                           {def.key === 'interests' && <button onClick={() => setViewRow(row)} title="Ver tudo"><Eye size={15} /></button>}
                           {def.key === 'interests' && <button onClick={() => convertInterest(row)} title="Virar aluno"><UserPlus size={15} /></button>}
+                          {def.key === 'users' && <button onClick={() => resetPassword(row)} title="Trocar senha"><KeyRound size={15} /></button>}
                           {def.key === 'cards' && <button onClick={() => openCard(row)} title="Ver carteirinha / QR"><QrCode size={15} /></button>}
                           {def.readOnly && def.key === 'audit' && <button onClick={() => setDetail(row)} title="Ver detalhes"><Eye size={15} /></button>}
                           {canEdit && <button onClick={() => editRecord(row)} title="Editar"><Edit size={15} /></button>}
@@ -512,6 +524,7 @@ export default function Admin() {
         </div>
       </main>
 
+      {userModal && <UserCreator onClose={() => setUserModal(false)} onDone={m => { setUserModal(false); setMessage(m); load(); }} />}
       {modal && def && (
         <div className="modalBackdrop" onClick={() => setModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>

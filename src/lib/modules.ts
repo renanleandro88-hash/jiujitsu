@@ -300,7 +300,7 @@ export const modules: ModuleDef[] = [
   },
   {
     key: 'users', title: 'Usuários e permissões', table: 'profiles', adminOnly: true, noDelete: true,
-    description: 'Perfis de acesso. Primeiro crie o usuário em Authentication no Supabase e cole aqui o UUID dele.',
+    description: 'Quem acessa o sistema. Clique em Novo para criar professor, auxiliar ou administrador (e-mail + senha). Lápis: mudar perfil ou desativar. Chave: trocar a senha. Para ligar o professor à atividade dele, use Professores por atividade.',
     columns: ['full_name', 'role', 'active', 'created_at'],
     fields: [
       { name: 'id', label: 'UUID do usuário (Supabase Auth)', required: true, createOnly: true },

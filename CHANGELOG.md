@@ -82,3 +82,6 @@
 - Ficha de inscrição e formulário do site: escolha de 1 ou 2 atividades.
 - Chamada lista só alunos inscritos na atividade da turma. Biblioteca de técnicas pode ser geral ou por atividade.
 - Professores não criam alunos (o administrador cria pela ficha); tudo que existia foi vinculado a Jiu-Jitsu.
+
+- Usuários pela própria página: o administrador cria professor/auxiliar/administrador (e-mail + senha) e troca senhas em Gestão → Usuários (função de servidor api/admin-users.js; exige SUPABASE_SERVICE_ROLE_KEY na Vercel).
+- Corrige erro de tipo da Chamada no build.
