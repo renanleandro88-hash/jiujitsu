@@ -44,7 +44,7 @@ export default function RollCall({ profile, notify }: { profile: { id: string; f
       setPendingNames(((pend.data as { full_name: string }[]) || []).map(x => x.full_name));
       if (c.error) notify('Falha ao carregar turmas: ' + c.error.message);
       if (st.error) notify('Falha ao carregar alunos: ' + st.error.message);
-      setClasses((c.data as Cls[]) || []);
+      setClasses((c.data as unknown as Cls[]) || []);
       setLinks(((st.data as unknown as Link[]) || []).filter(l => l.students && l.students.status === 'active'));
       setLoading(false);
     })();
