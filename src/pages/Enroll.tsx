@@ -17,7 +17,7 @@ const today = () => {
 
 const INITIAL: Record<string, string> = {
   start_date: today(), team: '',
-  full_name: '', birth_date: '', rg: '', cpf: '', sex: '', marital_status: '', nationality: 'Brasileira', race_color: '',
+  full_name: '', birth_date: '', rg: '', sus_number: '', cpf: '', sex: '', marital_status: '', nationality: 'Brasileira', race_color: '',
   father_name: '', father_rg: '', father_cpf: '', father_birth_date: '', mother_name: '', mother_rg: '', mother_cpf: '', mother_birth_date: '',
   address: '', neighborhood: '', city: 'São Paulo', cep: '', address_complement: '',
   phone1: '', phone2: '', email: '',
@@ -106,7 +106,7 @@ export default function Enroll() {
       school_level: t('school_level'), school_name: t('school_name'), school_shift: t('school_shift'),
       may_leave_alone: minor ? yn('may_leave_alone') : null,
       emergency_name: t('emergency_name'), emergency_phone: t('emergency_phone'), emergency_relationship: t('emergency_relationship'),
-      health_plan: yn('health_plan'), health_plan_name: f.health_plan === 'yes' ? t('health_plan_name') : null, uses_sus: chk.sus,
+      health_plan: yn('health_plan'), health_plan_name: f.health_plan === 'yes' ? t('health_plan_name') : null, uses_sus: chk.sus, sus_number: chk.sus ? (t('sus_number') || null) : null,
       has_health_problem: yn('has_health_problem'), health_problem_desc: f.has_health_problem === 'yes' ? t('health_problem_desc') : null,
       allergies: t('allergies'),
       takes_medication: yn('takes_medication'), medication_desc: f.takes_medication === 'yes' ? t('medication_desc') : null,
@@ -234,6 +234,7 @@ export default function Enroll() {
             <YesNo name="plan" label="Plano de saúde *" value={val('health_plan')} onChange={setYN('health_plan')} />
             {val('health_plan') === 'yes' && <Field label="Qual plano?"><input value={val('health_plan_name')} onChange={set('health_plan_name')} maxLength={80} /></Field>}
             <label className="check"><input type="checkbox" checked={chk.sus} onChange={e => setChk(p => ({ ...p, sus: e.target.checked }))} /> Utiliza o SUS</label>
+            {chk.sus && <Field label="Número do Cartão SUS (opcional)"><input inputMode="numeric" maxLength={25} value={val('sus_number')} onChange={set('sus_number')} placeholder="15 números do cartão" /></Field>}
 
             <YesNo name="problem" label="Possui algum problema de saúde? *" value={val('has_health_problem')} onChange={setYN('has_health_problem')} />
             {val('has_health_problem') === 'yes' && <Field label="Qual?"><input required value={val('health_problem_desc')} onChange={set('health_problem_desc')} maxLength={300} /></Field>}

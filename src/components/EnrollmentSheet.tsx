@@ -18,7 +18,7 @@ export default function EnrollmentSheet({ row, onClose }: { row: Row; onClose: (
       ['Telefone 1', txt(row.phone1)], ['Celular 2', txt(row.phone2)], ['E-mail', txt(row.email)]] },
     { title: 'Escolaridade', rows: [['Escolaridade', txt(row.school_level)], ['Colégio', txt(row.school_name)], ['Turno', txt(row.school_shift)], ['Ida e volta sozinho (menor)', yn(row.may_leave_alone)]] },
     { title: 'Emergência', rows: [['Nome', txt(row.emergency_name)], ['Telefone', txt(row.emergency_phone)], ['Parentesco', txt(row.emergency_relationship)]] },
-    { title: 'Saúde', rows: [['Plano de saúde', withDetail(row.health_plan, row.health_plan_name)], ['SUS', yn(row.uses_sus)], ['Problema de saúde', withDetail(row.has_health_problem, row.health_problem_desc)],
+    { title: 'Saúde', rows: [['Plano de saúde', withDetail(row.health_plan, row.health_plan_name)], ['SUS', yn(row.uses_sus)], ['Nº do Cartão SUS', txt(row.sus_number)], ['Problema de saúde', withDetail(row.has_health_problem, row.health_problem_desc)],
       ['Alergias', txt(row.allergies)], ['Medicamento', withDetail(row.takes_medication, row.medication_desc)], ['Deficiência / necessidades especiais', withDetail(row.has_disability, row.disability_desc)],
       ['Cirurgia', withDetail(row.had_surgery, row.surgery_desc)], ['Tipo sanguíneo', txt(row.blood_type)], ['Altura', row.height_cm ? `${row.height_cm} cm` : '—'], ['Peso', row.weight_kg ? `${row.weight_kg} kg` : '—']] },
     { title: 'Termos e assinatura eletrônica', rows: [['Termos aceitos (itens 1, 4–9)', `${yn(row.accepted_terms)} · versão ${txt(row.terms_version)}`], ['Ciente: sem técnicas de combate fora do treino', yn(row.ack_no_combat_outside)],

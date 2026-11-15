@@ -891,3 +891,72 @@ create trigger on_auth_user_created after insert on auth.users for each row exec
 
 -- preenche o e-mail de quem já existe
 update public.profiles p set email=u.email from auth.users u where u.id=p.id and p.email is null;
+
+
+-- ===== MIGRAÇÃO 009: CARTEIRINHA COM HORÁRIOS =====
+-- 009: carteirinha digital mostra, por atividade, os professores responsáveis e os horários das turmas do aluno.
+drop function if exists public.verify_membership_card(uuid);
+create function public.verify_membership_card(token uuid)
+returns table(student_display_name text, student_number text, card_status text, expires_at date, photo_path text, activities jsonb)
+language sql stable security definer set search_path=public
+as $$
+ select split_part(trim(s.full_name),' ',1) || case when position(' ' in trim(s.full_name))>0 then ' ' || left((regexp_split_to_array(trim(s.full_name),'\s+'))[array_length(regexp_split_to_array(trim(s.full_name),'\s+'),1)],1) || '.' else '' end,
+   coalesce(s.student_number,'—'), mc.status, mc.expires_at, s.photo_path,
+   coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'name',a.name,
+      'graduation',(select g.new_belt || case when g.degrees>0 then ' · ' || g.degrees || 'º grau' else '' end
+         from public.graduation_history g where g.student_id=s.id and g.activity_id=a.id order by g.graduation_date desc, g.created_at desc limit 1),
+      'belt',(select g.new_belt from public.graduation_history g where g.student_id=s.id and g.activity_id=a.id order by g.graduation_date desc, g.created_at desc limit 1),
+      'degrees',(select coalesce(g.degrees,0) from public.graduation_history g where g.student_id=s.id and g.activity_id=a.id order by g.graduation_date desc, g.created_at desc limit 1),
+      'teachers',coalesce((select jsonb_agg(distinct nm) from (
+          select p.full_name as nm from public.teacher_activities ta join public.profiles p on p.id=ta.profile_id where ta.activity_id=a.id and p.active and p.role in ('teacher','assistant') and p.full_name<>''
+          union select c.teacher_name from public.classes c where c.activity_id=a.id and c.active and c.teacher_name is not null and c.teacher_name<>'') t),'[]'::jsonb),
+      'schedule',coalesce((select jsonb_agg(jsonb_build_object('weekday',c.weekday,'start',to_char(c.start_time,'HH24:MI'),'end',to_char(c.end_time,'HH24:MI'),'name',c.name) order by c.weekday,c.start_time)
+          from public.classes c where c.activity_id=a.id and c.active
+           and (c.category is null or s.category is null or c.category ilike '%'||s.category||'%')),'[]'::jsonb)
+     ) order by a.sort_order)
+    from public.student_activities sa join public.activities a on a.id=sa.activity_id
+    where sa.student_id=s.id and sa.status='active'),'[]'::jsonb)
+ from public.membership_cards mc
+ join public.students s on s.id=mc.student_id
+ where mc.qr_token=token and mc.status='active' and mc.expires_at>=current_date
+ limit 1
+$$;
+revoke all on function public.verify_membership_card(uuid) from public;
+grant execute on function public.verify_membership_card(uuid) to anon,authenticated;
+
+
+-- ===== MIGRAÇÃO 010: RG/SUS + DADOS PROTEGIDOS NA CARTEIRINHA =====
+-- 010: RG e Nº do SUS do aluno + dados pessoais protegidos na carteirinha digital.
+-- Endereço, RG e SUS NÃO aparecem na verificação pública: só depois de informar a data de nascimento do aluno.
+alter table public.enrollments add column if not exists sus_number text check(sus_number is null or sus_number ~ '^[0-9 .-]{0,25}$');
+alter table public.students add column if not exists rg text check(rg is null or char_length(rg)<=30);
+alter table public.students add column if not exists sus_number text check(sus_number is null or sus_number ~ '^[0-9 .-]{0,25}$');
+
+create table if not exists public.card_unlock_attempts (
+ id bigint generated always as identity primary key,
+ token uuid not null, ok boolean not null, created_at timestamptz not null default now()
+);
+create index if not exists card_unlock_attempts_idx on public.card_unlock_attempts(token,created_at);
+alter table public.card_unlock_attempts enable row level security;   -- sem policies: só a função (security definer) mexe
+
+create or replace function public.card_private_data(p_token uuid, p_birth date)
+returns table(address text, rg text, sus_number text)
+language plpgsql security definer set search_path=public as $$
+declare sid uuid; sbirth date; fails int;
+begin
+ delete from public.card_unlock_attempts where created_at < now() - interval '1 day';
+ select count(*) into fails from public.card_unlock_attempts where token=p_token and not ok and created_at > now() - interval '15 minutes';
+ if fails >= 5 then raise exception 'too_many_attempts'; end if;
+ select s.id, s.birth_date into sid, sbirth from public.membership_cards mc join public.students s on s.id=mc.student_id
+  where mc.qr_token=p_token and mc.status='active' and mc.expires_at>=current_date limit 1;
+ if sid is null or sbirth is null or sbirth is distinct from p_birth then
+  insert into public.card_unlock_attempts(token,ok) values(p_token,false);
+  return;
+ end if;
+ insert into public.card_unlock_attempts(token,ok) values(p_token,true);
+ return query select s.address, s.rg, s.sus_number from public.students s where s.id=sid;
+end $$;
+revoke all on function public.card_private_data(uuid,date) from public;
+grant execute on function public.card_private_data(uuid,date) to anon,authenticated;

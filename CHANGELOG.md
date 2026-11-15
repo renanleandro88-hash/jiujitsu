@@ -87,3 +87,9 @@
 - Corrige erro de tipo da Chamada no build.
 
 - Cadastro em /login (Criar cadastro): fica pendente até o administrador liberar em Gestão → Usuários (migração 008).
+
+- Carteirinha digital redesenhada no estilo de documento (CNH virtual): frente com foto, matrícula, atividades e validade; verso com QR e relógio de verificação; selo animado.
+
+- Carteirinha: mostra professores responsáveis e horários por atividade, QR na frente e layout ajustado para celular (migração 009).
+- Carteirinha: faixa/corda desenhada na cor da graduação, com os graus em listras.
+- Carteirinha: endereço do instituto; endereço, RG e Nº do SUS do aluno ficam protegidos por data de nascimento (migração 010). Ficha ganhou campo Nº do Cartão SUS.

@@ -305,7 +305,7 @@ export default function Admin() {
     const notes = [`Origem: ficha de inscrição online (${new Date(row.created_at).toLocaleDateString('pt-BR')}).`, row.signer_name ? `Assinada por ${row.signer_name}${row.signer_relationship ? ' (' + row.signer_relationship + ')' : ''}.` : ''].filter(Boolean).join(' ');
     const { data: st, error } = await supabase.from('students').insert({
       full_name: row.full_name, birth_date: row.birth_date, phone: row.phone1, email: row.email || null, sex: row.sex === 'M' ? 'Masculino' : row.sex === 'F' ? 'Feminino' : null,
-      address, category: catFor(age), status: 'active', entry_date: row.start_date || undefined, notes,
+      address, rg: row.rg || null, sus_number: row.sus_number || null, category: catFor(age), status: 'active', entry_date: row.start_date || undefined, notes,
     }).select('id').single();
     if (error || !st) { setMessage('Não foi possível criar o aluno: ' + (error ? friendlyError(error) : 'sem retorno')); return; }
     const sid = st.id as string;

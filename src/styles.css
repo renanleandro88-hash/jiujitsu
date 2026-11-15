@@ -132,3 +132,41 @@ code{background:#25231e;padding:1px 5px;border-radius:4px;font-size:11px;color:v
 .fieldLabel{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;font-size:13px;margin-top:10px}
 .idActs>span{display:flex;justify-content:space-between;gap:10px;font-size:13px;border-bottom:1px solid #2b2924;padding:6px 0}
 .idActs b{color:var(--gold-light)}
+
+/* ===== Carteirinha digital estilo documento (CNH virtual) ===== */
+.cnh{width:min(100%,420px)}
+.cnhFace{position:relative;border-radius:16px;overflow:hidden;box-shadow:0 14px 40px #000a;color:#13150f;border:1.5px solid #b89449;
+ background:repeating-radial-gradient(circle at 20% 120%,#0000 0 7px,#ffffff22 7px 8px),linear-gradient(135deg,#f3e7c2 0%,#e9d79b 45%,#cfe3c8 100%)}
+.cnhBack{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:22px 14px;min-height:340px}
+.cnhHolo{position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,#0000 30%,#ffffff66 45%,#8ee6ff55 50%,#ff9ee655 55%,#0000 70%);background-size:250% 100%;animation:holo 4s linear infinite;mix-blend-mode:soft-light}
+@keyframes holo{0%{background-position:200% 0}100%{background-position:-100% 0}}
+.cnhFront header{display:flex;align-items:center;gap:10px;padding:10px 12px;background:linear-gradient(90deg,#1b6b3a,#2f8f4e);color:#fff}
+.cnhFront header strong{display:block;font:800 13px Manrope,sans-serif;letter-spacing:1.2px}.cnhFront header small{font-size:9px;letter-spacing:1px;opacity:.9}
+.cnhLogo{width:36px;height:36px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}.cnhLogo img{width:100%;height:100%;object-fit:contain}
+.cnhOk{margin-left:auto;display:inline-flex;align-items:center;gap:4px;background:#fff;color:#1b6b3a;font:800 9px Manrope,sans-serif;letter-spacing:1px;padding:4px 8px;border-radius:20px;white-space:nowrap}
+.cnhMain{display:flex;gap:12px;padding:12px 12px 6px}
+.cnhPhoto{width:96px;height:124px;border-radius:6px;overflow:hidden;background:#ddd;border:1.5px solid #8d6d32;display:flex;align-items:center;justify-content:center;font-size:10px;color:#777;flex-shrink:0}.cnhPhoto img{width:100%;height:100%;object-fit:cover}
+.cnhMain dl{margin:0;display:flex;flex-direction:column;min-width:0;gap:1px;flex:1}
+.cnhMain dt{font-size:8px;letter-spacing:1.2px;color:#6b5322;margin-top:8px}.cnhMain dt:first-child{margin-top:0}
+.cnhMain dd{margin:0;font-size:14px;font-weight:700;overflow-wrap:anywhere}.cnhName{font-size:17px!important;text-transform:uppercase;line-height:1.15}
+.cnhMono{font-family:ui-monospace,Menlo,monospace;letter-spacing:1px;font-size:13px!important}
+.cnhActs{padding:4px 12px 8px;display:flex;flex-direction:column;gap:8px}
+.cnhActs section{background:#ffffff88;border:1px solid #b8944966;border-radius:8px;padding:8px 10px}
+.cnhActs h3{margin:0 0 3px;font-size:13px;color:#13150f}.cnhActs h3 i{font-style:normal;font-weight:600;color:#3a4a2a}
+.cnhActs p{margin:2px 0 0;font-size:11.5px;line-height:1.4;overflow-wrap:anywhere}.cnhActs p b{color:#6b5322}
+.cnhFront footer{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;background:#13150f;color:#f0d99e}
+.cnhFront footer small{font-size:10px;line-height:1.35}.cnhQrSm{background:#fff;padding:4px;border-radius:6px;line-height:0;flex-shrink:0}
+.cnhQr{background:#fff;padding:10px;border-radius:10px;line-height:0}
+.cnhBack p{margin:0;font-size:12px;max-width:280px}.cnhClock{font-size:11px;color:#4a4a3a}.cnhClock b{font-size:14px;color:#111;font-family:ui-monospace,Menlo,monospace}.cnhBack small{font-size:10px;color:#6b5322}
+.cnhFlip{margin-top:6px}.cnhHint{max-width:380px;text-align:center;color:#8f887c;font-size:11px;line-height:1.5}
+@media(max-width:380px){.cnhPhoto{width:80px;height:106px}.cnhName{font-size:15px!important}}
+
+.cnhGrad{display:flex;flex-direction:column;gap:4px;margin:2px 0 4px}.cnhGrad b{font-size:12.5px;color:#2a3a1a}
+.cnhBelt{display:flex;height:16px;border-radius:3px;overflow:hidden;border:1px solid #0006}.cnhBelt .bar{flex:1}
+.cnhBelt .tip{width:64px;background:#111;display:flex;justify-content:center;align-items:stretch;gap:4px;padding:0 6px}.cnhBelt .tip i{width:5px;background:#fff}
+
+.cnhLocal{padding:2px 12px 8px;font-size:11px;line-height:1.4}.cnhLocal b{color:#6b5322}
+.cnhPriv{margin:0 12px 10px;padding:10px;border:1px dashed #8d6d32;border-radius:8px;background:#ffffff66;display:flex;flex-direction:column;gap:6px}
+.cnhPriv small{font-size:9.5px;color:#6b5322}.cnhPriv dl{margin:0}.cnhPriv dt{font-size:8px;letter-spacing:1.2px;color:#6b5322;margin-top:6px}.cnhPriv dt:first-child{margin-top:0}.cnhPriv dd{margin:0;font-size:13px;font-weight:700;overflow-wrap:anywhere}
+.cnhPriv form{display:flex;flex-direction:column;gap:8px}.cnhPriv label{font-size:11px;display:flex;flex-direction:column;gap:4px;color:#13150f}.cnhPriv input{padding:9px;border:1px solid #b89449;border-radius:6px;background:#fff;color:#111;font-size:14px}
+.cnhUnlock{background:#13150f;color:#f0d99e;border:0;border-radius:8px;padding:10px;font-weight:700;font-size:12px}.cnhErr{color:#a31616!important;font-size:11px!important}
