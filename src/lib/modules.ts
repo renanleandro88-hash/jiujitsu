@@ -58,6 +58,7 @@ export const modules: ModuleDef[] = [
       { name: 'address', label: 'Endereço' },
       { name: 'rg', label: 'RG', maxLength: 30 },
       { name: 'sus_number', label: 'Nº do Cartão SUS', maxLength: 25 },
+      { name: 'blood_type', label: 'Tipo sanguíneo', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Não sei'], blankLabel: 'Não informado' },
       { name: 'category', label: 'Categoria', options: CAT },
       { name: 'status', label: 'Situação', options: ['active', 'pending', 'inactive', 'suspended'] },
       { name: 'entry_date', label: 'Data de entrada', type: 'date' },

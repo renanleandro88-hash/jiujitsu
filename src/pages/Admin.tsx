@@ -123,6 +123,7 @@ export default function Admin() {
   const [refOptions, setRefOptions] = useState<Record<string, { id: string; label: string; flag?: any }[]>>({});
   const [cardView, setCardView] = useState<Row | null>(null);
   const [cardStudent, setCardStudent] = useState<Row | null>(null);
+  const [cardEmerg, setCardEmerg] = useState<{ contacts: Row[]; health: Row | null }>({ contacts: [], health: null });
   const [copied, setCopied] = useState(false);
   const [detail, setDetail] = useState<Row | null>(null);
   const [viewRow, setViewRow] = useState<Row | null>(null);
@@ -305,7 +306,7 @@ export default function Admin() {
     const notes = [`Origem: ficha de inscrição online (${new Date(row.created_at).toLocaleDateString('pt-BR')}).`, row.signer_name ? `Assinada por ${row.signer_name}${row.signer_relationship ? ' (' + row.signer_relationship + ')' : ''}.` : ''].filter(Boolean).join(' ');
     const { data: st, error } = await supabase.from('students').insert({
       full_name: row.full_name, birth_date: row.birth_date, phone: row.phone1, email: row.email || null, sex: row.sex === 'M' ? 'Masculino' : row.sex === 'F' ? 'Feminino' : null,
-      address, rg: row.rg || null, sus_number: row.sus_number || null, category: catFor(age), status: 'active', entry_date: row.start_date || undefined, notes,
+      address, rg: row.rg || null, sus_number: row.sus_number || null, blood_type: row.blood_type || null, category: catFor(age), status: 'active', entry_date: row.start_date || undefined, notes,
     }).select('id').single();
     if (error || !st) { setMessage('Não foi possível criar o aluno: ' + (error ? friendlyError(error) : 'sem retorno')); return; }
     const sid = st.id as string;
@@ -336,10 +337,15 @@ export default function Admin() {
   }
 
   async function openCard(row: Row) {
-    setCardView(row); setCardStudent(null); setCopied(false);
+    setCardView(row); setCardStudent(null); setCardEmerg({ contacts: [], health: null }); setCopied(false);
     if (!supabase) return;
-    const { data } = await supabase.from('students').select('full_name,phone,photo_path').eq('id', row.student_id).maybeSingle();
+    const { data } = await supabase.from('students').select('full_name,phone,photo_path,blood_type,rg,sus_number,address').eq('id', row.student_id).maybeSingle();
     setCardStudent(data as Row | null);
+    const [ec, hp] = await Promise.all([
+      supabase.from('emergency_contacts').select('full_name,phone,relationship').eq('student_id', row.student_id),
+      supabase.from('student_health_private').select('has_allergies,allergy_type,emergency_guidance').eq('student_id', row.student_id).maybeSingle(),
+    ]);
+    setCardEmerg({ contacts: (ec.data as Row[]) || [], health: (hp.data as Row | null) || null });
   }
   const cardLink = (r: Row) => `${window.location.origin}/verificar/${r.qr_token}`;
   async function copyCardLink(r: Row) {
@@ -563,7 +569,13 @@ export default function Admin() {
                 </div>
                 <div className="qrBox"><QRCodeSVG value={cardLink(cardView)} size={96} bgColor="#ffffff" fgColor="#111111" /></div>
               </div>
-              <small className="printCardFoot">O QR abre a carteirinha digital, que mostra só dados mínimos.</small>
+              <div className="printEmerg">
+                <h4>EMERGÊNCIA</h4>
+                <div><b>Sangue:</b> {cardStudent?.blood_type || '—'} · <b>SUS:</b> {cardStudent?.sus_number || '—'} · <b>RG:</b> {cardStudent?.rg || '—'}</div>
+                <div><b>Contatos:</b> {cardEmerg.contacts.length ? cardEmerg.contacts.map(c => `${c.full_name}${c.relationship ? ' (' + c.relationship + ')' : ''} ${c.phone}`).join(' · ') : '—'}</div>
+                <div><b>Alergias:</b> {cardEmerg.health?.has_allergies ? (cardEmerg.health.allergy_type || 'Sim') : 'Nenhuma informada'}{cardEmerg.health?.emergency_guidance ? <> · <b>Saúde:</b> {cardEmerg.health.emergency_guidance}</> : null}</div>
+              </div>
+              <small className="printCardFoot">O QR abre a carteirinha digital. Em caso de acidente, o professor logado ou a data de nascimento do aluno liberam a ficha de emergência.</small>
             </div>
             {cardStudent && !cardStudent.photo_path && <div className="notice" style={{ marginTop: 14 }}><AlertCircle size={16} />Aluno sem foto. Em Alunos, clique no lápis dele para enviar a foto.</div>}
             {cardView.status !== 'active' && <div className="notice" style={{ marginTop: 14 }}><AlertCircle size={16} />Carteirinha não está ativa: a verificação pública a recusará.</div>}

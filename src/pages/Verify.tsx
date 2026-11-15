@@ -8,6 +8,7 @@ import Brand from '../components/Brand';
 
 type Result = { student_display_name: string; student_number: string; activities: { name: string; graduation: string | null; belt?: string | null; degrees?: number | null; teachers: string[] | null; schedule: { weekday: string | null; start: string | null; end: string | null; name: string }[] | null }[] | null; card_status: string; expires_at: string | null; photo_path: string | null };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type Priv = { address: string | null; rg: string | null; sus_number: string | null; blood_type: string | null; allergies: string | null; health_notes: string | null; contacts: { name: string; relationship: string | null; phone: string }[] | null; staff_access: boolean };
 const ACADEMY = 'Avenida Miguel de Castro, 1451 · Pirituba · São Paulo/SP';
 const fmt = (d: string) => d.split('-').reverse().join('/');
 const COLORS: [string, string][] = [['branca', '#f4f4f4'], ['cinza', '#9a9a9a'], ['amarela', '#f2c823'], ['laranja', '#f08a24'], ['verde', '#2e9e4f'], ['azul', '#1f5fbf'], ['roxa', '#7a3db5'], ['marrom', '#7a4a21'], ['preta', '#161616'], ['vermelha', '#c62828'], ['crua', '#e8dcc0'], ['bege', '#e8dcc0'], ['rosa', '#e86aa6'], ['dourada', '#c9a227']];
@@ -37,10 +38,21 @@ export default function Verify() {
 
   const photo = card ? photoUrl(card.photo_path) : null;
   const [flip, setFlip] = useState(false);
-  const [priv, setPriv] = useState<{ address: string | null; rg: string | null; sus_number: string | null } | null>(null);
+  const [priv, setPriv] = useState<Priv | null>(null);
   const [askBirth, setAskBirth] = useState(false);
   const [birth, setBirth] = useState('');
   const [privMsg, setPrivMsg] = useState('');
+  // Professor/administrador logado com acesso ao aluno vê a ficha de emergência sem digitar nada.
+  useEffect(() => {
+    if (!card || !supabase) return;
+    const s = supabase;
+    s.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      const r = await s.rpc('card_private_data', { p_token: token, p_birth: null });
+      const row = Array.isArray(r.data) ? r.data[0] : r.data;
+      if (!r.error && row) setPriv(row as Priv);
+    });
+  }, [card, token]);
   async function unlock(e: FormEvent) {
     e.preventDefault(); setPrivMsg('');
     if (!supabase || !birth) return;
@@ -89,19 +101,27 @@ export default function Verify() {
                 <div className="cnhLocal"><b>Local de treino:</b> {ACADEMY}</div>
                 <div className="cnhPriv">
                   {priv ? (
-                    <dl>
-                      <dt>ENDEREÇO DO ALUNO</dt><dd>{priv.address || 'Não informado'}</dd>
-                      <dt>RG</dt><dd>{priv.rg || 'Não informado'}</dd>
-                      <dt>CARTÃO SUS</dt><dd>{priv.sus_number || 'Não informado'}</dd>
-                    </dl>
+                    <div className="cnhEmerg">
+                      <h4>🆘 FICHA DE EMERGÊNCIA{priv.staff_access ? ' · acesso do professor' : ''}</h4>
+                      <dl>
+                        <dt>CONTATOS PARA LIGAR</dt>
+                        <dd>{priv.contacts && priv.contacts.length ? priv.contacts.map((c, i) => <a key={i} className="cnhCall" href={`tel:${c.phone.replace(/[^\d+]/g, '')}`}>📞 {c.name}{c.relationship ? ` (${c.relationship})` : ''} — {c.phone}</a>) : 'Não informado'}</dd>
+                        <dt>TIPO SANGUÍNEO</dt><dd className="cnhBlood">{priv.blood_type || 'Não informado'}</dd>
+                        <dt>ALERGIAS</dt><dd>{priv.allergies || 'Nenhuma informada'}</dd>
+                        <dt>SAÚDE / MEDICAÇÃO / OBSERVAÇÕES</dt><dd>{priv.health_notes || 'Nada informado'}</dd>
+                        <dt>CARTÃO SUS</dt><dd>{priv.sus_number || 'Não informado'}</dd>
+                        <dt>RG</dt><dd>{priv.rg || 'Não informado'}</dd>
+                        <dt>ENDEREÇO DO ALUNO</dt><dd>{priv.address || 'Não informado'}</dd>
+                      </dl>
+                    </div>
                   ) : askBirth ? (
                     <form onSubmit={unlock}>
                       <label>Data de nascimento do aluno<input type="date" required value={birth} onChange={e => setBirth(e.target.value)} /></label>
                       <button className="primaryButton">Mostrar dados</button>
                       {privMsg && <small className="cnhErr">{privMsg}</small>}
                     </form>
-                  ) : <button type="button" className="cnhUnlock" onClick={() => setAskBirth(true)}>🔒 Ver endereço, RG e SUS</button>}
-                  <small>Dados pessoais protegidos: só aparecem com a data de nascimento.</small>
+                  ) : <button type="button" className="cnhUnlock" onClick={() => setAskBirth(true)}>🆘 Dados de emergência e documentos</button>}
+                  <small>Dados protegidos: aparecem para o professor logado ou com a data de nascimento do aluno.</small>
                 </div>
                 <footer>
                   <small>Confirme a autenticidade pelo QR code →</small>

@@ -170,3 +170,10 @@ code{background:#25231e;padding:1px 5px;border-radius:4px;font-size:11px;color:v
 .cnhPriv small{font-size:9.5px;color:#6b5322}.cnhPriv dl{margin:0}.cnhPriv dt{font-size:8px;letter-spacing:1.2px;color:#6b5322;margin-top:6px}.cnhPriv dt:first-child{margin-top:0}.cnhPriv dd{margin:0;font-size:13px;font-weight:700;overflow-wrap:anywhere}
 .cnhPriv form{display:flex;flex-direction:column;gap:8px}.cnhPriv label{font-size:11px;display:flex;flex-direction:column;gap:4px;color:#13150f}.cnhPriv input{padding:9px;border:1px solid #b89449;border-radius:6px;background:#fff;color:#111;font-size:14px}
 .cnhUnlock{background:#13150f;color:#f0d99e;border:0;border-radius:8px;padding:10px;font-weight:700;font-size:12px}.cnhErr{color:#a31616!important;font-size:11px!important}
+
+.cnhEmerg h4{margin:0 0 6px;font-size:12px;color:#a31616;letter-spacing:.5px}
+.cnhCall{display:block;margin:3px 0;padding:8px 10px;background:#a31616;color:#fff!important;border-radius:8px;font-size:13px;text-decoration:none;font-weight:700}
+.cnhBlood{font-size:22px!important;color:#a31616}
+/* carteirinha impressa no painel: não espremer no celular */
+.printCardBody{flex-wrap:wrap}.cardInfo{flex:1 1 150px!important}.qrBox{margin:0 auto}
+.printEmerg{margin-top:14px;border-top:1px dashed #b89449;padding-top:10px;font-size:11px;line-height:1.5}.printEmerg b{display:inline}.printEmerg h4{margin:0 0 4px;font-size:11px;color:#a31616;letter-spacing:.5px}
