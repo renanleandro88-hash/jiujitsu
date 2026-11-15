@@ -15,6 +15,7 @@ import PhotoUploader from '../components/PhotoUploader';
 import ActivityPicker from '../components/ActivityPicker';
 import UserCreator from '../components/UserCreator';
 import { adminUsersApi } from '../lib/adminApi';
+import { buildCardPdf } from '../lib/cardPdf';
 import { photoUrl, PHOTO_BUCKET } from '../lib/photo';
 import EnrollmentSheet from '../components/EnrollmentSheet';
 import { categoryFor as catFor, ageFromISO as ageISO } from '../lib/enrollment';
@@ -347,6 +348,39 @@ export default function Admin() {
     ]);
     setCardEmerg({ contacts: (ec.data as Row[]) || [], health: (hp.data as Row | null) || null });
   }
+  const [pdfBusy, setPdfBusy] = useState(false);
+  async function sendCardPdf(r: Row) {
+    if (!supabase || !cardStudent) return;
+    if (r.status !== 'active') { setMessage('A carteirinha precisa estar ativa para gerar o PDF.'); return; }
+    setPdfBusy(true);
+    try {
+      const v = await supabase.rpc('verify_membership_card', { token: r.qr_token });
+      const vr = (Array.isArray(v.data) ? v.data[0] : v.data) as Row | null;
+      const qrEl = document.querySelector('#printCard .qrBox svg');
+      const qrSvg = qrEl ? new XMLSerializer().serializeToString(qrEl).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ') : null;
+      const h = cardEmerg.health;
+      const blob = await buildCardPdf({
+        name: String(cardStudent.full_name || refs.students?.get(r.student_id) || 'Aluno'), number: String(r.card_number || ''), expires: r.expires_at ? fmtDate(r.expires_at) : '—',
+        photoUrl: photoUrl(cardStudent.photo_path), academy: 'Avenida Miguel de Castro, 1451 · Pirituba · São Paulo/SP', link: cardLink(r), qrSvg,
+        activities: (vr?.activities as any[]) || [],
+        emergency: { blood: cardStudent.blood_type || null, sus: cardStudent.sus_number || null, rg: cardStudent.rg || null, address: cardStudent.address || null,
+          allergies: h?.has_allergies ? (h.allergy_type || 'Sim') : null, health: h?.emergency_guidance || null,
+          contacts: cardEmerg.contacts.map(c => ({ name: c.full_name, relationship: c.relationship || null, phone: c.phone })) },
+      });
+      const fname = `carteirinha-${String(cardStudent.full_name || 'aluno').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}.pdf`;
+      const file = new File([blob], fname, { type: 'application/pdf' });
+      const text = 'Carteirinha do Instituto Realiza. Link da versão digital: ' + cardLink(r);
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], text, title: 'Carteirinha' }); } catch { /* cancelado */ }
+      } else {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; a.click();
+        const ph = cardStudent.phone ? '55' + String(cardStudent.phone).replace(/\D/g, '').replace(/^55/, '') : '';
+        window.open(`https://wa.me/${ph}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+        setMessage('PDF baixado. No WhatsApp que abriu, clique no clipe (anexar) e escolha o arquivo ' + fname + '.');
+      }
+    } catch { setMessage('Não foi possível gerar o PDF agora.'); }
+    setPdfBusy(false);
+  }
   const cardLink = (r: Row) => `${window.location.origin}/verificar/${r.qr_token}`;
   async function copyCardLink(r: Row) {
     try { await navigator.clipboard.writeText(cardLink(r)); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { window.prompt('Copie o link:', cardLink(r)); }
@@ -582,7 +616,8 @@ export default function Admin() {
             <div className="modalActions cardShare">
               <button className="cancelButton" onClick={() => copyCardLink(cardView)}>{copied ? 'Link copiado!' : 'Copiar link da carteirinha digital'}</button>
               <a className="cancelButton" target="_blank" rel="noopener noreferrer" href={`https://wa.me/${cardStudent?.phone ? '55' + String(cardStudent.phone).replace(/\D/g, '').replace(/^55/, '') : ''}?text=${encodeURIComponent('Sua carteirinha digital do Instituto Realiza: ' + cardLink(cardView))}`}>Enviar por WhatsApp</a>
-              <button className="primaryButton" onClick={() => window.print()}><Printer size={16} /> Imprimir</button>
+              <button className="primaryButton" disabled={pdfBusy} onClick={() => sendCardPdf(cardView)}>{pdfBusy ? 'Gerando PDF…' : 'Enviar PDF pelo WhatsApp'}</button>
+              <button className="cancelButton" onClick={() => window.print()}><Printer size={16} /> Imprimir</button>
             </div>
           </div>
         </div>

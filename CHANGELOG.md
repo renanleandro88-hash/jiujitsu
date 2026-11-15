@@ -94,3 +94,4 @@
 - Carteirinha: faixa/corda desenhada na cor da graduação, com os graus em listras.
 - Carteirinha: endereço do instituto; endereço, RG e Nº do SUS do aluno ficam protegidos por data de nascimento (migração 010). Ficha ganhou campo Nº do Cartão SUS.
 - Ficha de emergência na carteirinha (contatos para ligar, sangue, alergias, saúde, SUS, RG, endereço): liberada ao professor logado ou pela data de nascimento (migração 011). Carteirinha do painel corrigida no celular.
+- PDF da carteirinha (frente + ficha de emergência) gerado no navegador: botão "Enviar PDF pelo WhatsApp" no painel (compartilha o arquivo no celular; no computador baixa e abre o WhatsApp).
