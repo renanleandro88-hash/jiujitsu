@@ -300,10 +300,11 @@ export const modules: ModuleDef[] = [
   },
   {
     key: 'users', title: 'Usuários e permissões', table: 'profiles', adminOnly: true, noDelete: true,
-    description: 'Quem acessa o sistema. Clique em Novo para criar professor, auxiliar ou administrador (e-mail + senha). Lápis: mudar perfil ou desativar. Chave: trocar a senha. Para ligar o professor à atividade dele, use Professores por atividade.',
-    columns: ['full_name', 'role', 'active', 'created_at'],
+    description: 'Quem acessa o sistema. Quem se cadastra em /login aparece aqui como Inativo (perfil Aluno): clique no lápis, escolha Professor/Auxiliar/Administrador e marque Ativo; depois ligue a atividade em Professores por atividade. Ou clique em Novo para criar professor, auxiliar ou administrador (e-mail + senha). Lápis: mudar perfil ou desativar. Chave: trocar a senha. Para ligar o professor à atividade dele, use Professores por atividade.',
+    columns: ['full_name', 'email', 'role', 'active', 'created_at'],
     fields: [
       { name: 'id', label: 'UUID do usuário (Supabase Auth)', required: true, createOnly: true },
+      { name: 'email', label: 'E-mail', readOnly: true },
       { name: 'full_name', label: 'Nome completo', required: true },
       { name: 'role', label: 'Perfil', options: ['admin', 'teacher', 'assistant', 'student', 'guardian'], required: true },
       { name: 'active', label: 'Ativo', type: 'boolean' },

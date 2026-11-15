@@ -85,3 +85,5 @@
 
 - Usuários pela própria página: o administrador cria professor/auxiliar/administrador (e-mail + senha) e troca senhas em Gestão → Usuários (função de servidor api/admin-users.js; exige SUPABASE_SERVICE_ROLE_KEY na Vercel).
 - Corrige erro de tipo da Chamada no build.
+
+- Cadastro em /login (Criar cadastro): fica pendente até o administrador liberar em Gestão → Usuários (migração 008).

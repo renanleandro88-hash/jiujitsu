@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     }
     const ip = await fetch(`${URL_}/rest/v1/profiles`, {
       method: 'POST', headers: { ...hdr(SERVICE), Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ id: created.id, full_name: name, role: b.role, active: true }),
+      body: JSON.stringify({ id: created.id, full_name: name, role: b.role, active: true, email }),
     });
     if (!ip.ok) {
       await fetch(`${URL_}/auth/v1/admin/users/${created.id}`, { method: 'DELETE', headers: hdr(SERVICE) });
